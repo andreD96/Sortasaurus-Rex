@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
 
 # Prompt the user for the source directory
@@ -20,45 +21,67 @@ for category in categories.keys():
     os.makedirs(os.path.join(directory, category), exist_ok=True)
 
 
-# Function to classify a file
 def classify_file(filename):
-    # Find the file extension
-    extension = filename.split('.')[-1].lower()
+    """
+    Classify and move a file to the appropriate directory based on its extension.
 
-    # Flag to check if file has been moved
-    moved = False
+    Parameters:
+    filename (str): The name of the file to classify.
 
-    # Iterate over the categories
-    for category, extensions in categories.items():
-        # If the extension matches one of the extensions in the category, move the file
-        if extension in extensions:
-            # Construct the file paths
-            source_path = os.path.join(directory, filename)
-            dest_path = os.path.join(directory, category, filename)
+    Returns:
+    tuple: The filename and the category it was moved to.
+    """
+    try:
+        # Find the file extension
+        extension = filename.split('.')[-1].lower()
 
-            # Move the file
-            os.rename(source_path, dest_path)
-            print(f'Moved {filename} to {category}')
-            moved = True
-            break
+        # Default to 'Other' category
+        dest_category = 'Other'
 
-    # If the file wasn't moved, move it to the 'Other' directory
-    if not moved:
+        # Iterate over the categories
+        for category, extensions in categories.items():
+            # If the extension matches one of the extensions in the category, set the destination category
+            if extension in extensions:
+                dest_category = category
+                break
+
+        # Construct the file paths
         source_path = os.path.join(directory, filename)
-        dest_path = os.path.join(directory, 'Other', filename)
+        dest_path = os.path.join(directory, dest_category, filename)
+
+        # Move the file
         os.rename(source_path, dest_path)
-        print(f'Moved {filename} to Other')
+        return filename, dest_category
+
+    except FileNotFoundError:
+        return filename, 'FileNotFoundError'
+    except PermissionError:
+        return filename, 'PermissionError'
+    except Exception as e:
+        return filename, f'Error: {str(e)}'
 
 
 # Get the list of files in the directory
-files = os.listdir(directory)
+files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
 
-# Use tqdm to create a progress bar
-with tqdm(total=len(files), desc="Classifying files", unit="file") as pbar:
-    # Classify each file
-    for filename in files:
-        if os.path.isfile(os.path.join(directory, filename)):
-            classify_file(filename)
-        pbar.update(1)
+# Use ThreadPoolExecutor to classify files in parallel
+with ThreadPoolExecutor() as executor:
+    # Use tqdm to create a progress bar
+    with tqdm(total=len(files), desc="Classifying files", unit="file") as pbar:
+        # Submit tasks to the executor
+        futures = [executor.submit(classify_file, filename) for filename in files]
+
+        # Process results as they complete
+        for future in futures:
+            filename, category = future.result()
+            if category == 'FileNotFoundError':
+                print(f'Error: {filename} not found')
+            elif category == 'PermissionError':
+                print(f'Error: Permission denied for {filename}')
+            elif category.startswith('Error:'):
+                print(f'{category} for file {filename}')
+            else:
+                print(f'Moved {filename} to {category}')
+            pbar.update(1)
 
 print("File classification completed.")
