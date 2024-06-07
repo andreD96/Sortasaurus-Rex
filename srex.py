@@ -3,6 +3,7 @@
 import os
 from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
+from pathlib import Path
 
 # Prompt the user for the source directory
 directory = input("Please enter the source directory to be monitored: ")
@@ -16,24 +17,33 @@ categories = {
     'Other': []  # Directory for files that don't match any category
 }
 
+# Convert the directory to a Path object
+directory_path = Path(directory)
+
+# Check if the directory exists
+if not directory_path.is_dir():
+    print(f"The directory {directory} does not exist.")
+    exit(1)
+
 # Create directories for each category
 for category in categories.keys():
-    os.makedirs(os.path.join(directory, category), exist_ok=True)
+    category_path = directory_path / category
+    category_path.mkdir(parents=True, exist_ok=True)
 
 
-def classify_file(filename):
+def classify_file(file_path):
     """
     Classify and move a file to the appropriate directory based on its extension.
 
     Parameters:
-    filename (str): The name of the file to classify.
+    file_path (Path): The path of the file to classify.
 
     Returns:
     tuple: The filename and the category it was moved to.
     """
     try:
         # Find the file extension
-        extension = filename.split('.')[-1].lower()
+        extension = file_path.suffix.lower().lstrip('.')
 
         # Default to 'Other' category
         dest_category = 'Other'
@@ -45,31 +55,35 @@ def classify_file(filename):
                 dest_category = category
                 break
 
-        # Construct the file paths
-        source_path = os.path.join(directory, filename)
-        dest_path = os.path.join(directory, dest_category, filename)
+        # Construct the destination path
+        dest_path = directory_path / dest_category / file_path.name
 
         # Move the file
-        os.rename(source_path, dest_path)
-        return filename, dest_category
+        file_path.rename(dest_path)
+        return file_path.name, dest_category
 
     except FileNotFoundError:
-        return filename, 'FileNotFoundError'
+        return file_path.name, 'FileNotFoundError'
     except PermissionError:
-        return filename, 'PermissionError'
+        return file_path.name, 'PermissionError'
     except Exception as e:
-        return filename, f'Error: {str(e)}'
+        return file_path.name, f'Error: {str(e)}'
 
 
 # Get the list of files in the directory
-files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+files = [f for f in directory_path.iterdir() if f.is_file()]
+
+# Check if there are no files to classify
+if not files:
+    print("The directory is empty. No files to classify.")
+    exit(0)
 
 # Use ThreadPoolExecutor to classify files in parallel
 with ThreadPoolExecutor() as executor:
     # Use tqdm to create a progress bar
     with tqdm(total=len(files), desc="Classifying files", unit="file") as pbar:
         # Submit tasks to the executor
-        futures = [executor.submit(classify_file, filename) for filename in files]
+        futures = [executor.submit(classify_file, file_path) for file_path in files]
 
         # Process results as they complete
         for future in futures:
