@@ -8,8 +8,8 @@ predefined categories based on their extensions.
 
 import sys
 from concurrent.futures import ThreadPoolExecutor
-from tqdm import tqdm
 from pathlib import Path
+from tqdm import tqdm
 
 # Prompt the user for the source directory
 directory = input("Please enter the source directory to be monitored: ")
@@ -55,10 +55,11 @@ def classify_file(file_path):
         dest_category = 'Other'
 
         # Iterate over the categories
-        for category, extensions in categories.items():
-            # If the extension matches one of the extensions in the category, set the destination category
-            if extension in extensions:
-                dest_category = category
+        for theCategory, eachExtensions in categories.items():
+            # If the extension matches one of the extensions
+            # in the category, set the destination category
+            if extension in eachExtensions:
+                dest_category = theCategory
                 break
 
         # Construct the destination path
