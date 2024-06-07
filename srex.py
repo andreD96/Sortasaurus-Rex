@@ -55,11 +55,11 @@ def classify_file(file_path):
         dest_category = 'Other'
 
         # Iterate over the categories
-        for theCategory, eachExtensions in categories.items():
+        for the_category, each_extensions in categories.items():
             # If the extension matches one of the extensions
             # in the category, set the destination category
-            if extension in eachExtensions:
-                dest_category = theCategory
+            if extension in each_extensions:
+                dest_category = the_category
                 break
 
         # Construct the destination path
