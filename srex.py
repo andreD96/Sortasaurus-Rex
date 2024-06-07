@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 
-import os
+"""
+File classification script
+This script classifies files in a specified directory into
+predefined categories based on their extensions.
+"""
+
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
 from pathlib import Path
@@ -23,10 +29,10 @@ directory_path = Path(directory)
 # Check if the directory exists
 if not directory_path.is_dir():
     print(f"The directory {directory} does not exist.")
-    exit(1)
+    sys.exit(1)
 
 # Create directories for each category
-for category in categories.keys():
+for category, extensions in categories.items():
     category_path = directory_path / category
     category_path.mkdir(parents=True, exist_ok=True)
 
@@ -66,7 +72,7 @@ def classify_file(file_path):
         return file_path.name, 'FileNotFoundError'
     except PermissionError:
         return file_path.name, 'PermissionError'
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
         return file_path.name, f'Error: {str(e)}'
 
 
@@ -76,7 +82,7 @@ files = [f for f in directory_path.iterdir() if f.is_file()]
 # Check if there are no files to classify
 if not files:
     print("The directory is empty. No files to classify.")
-    exit(0)
+    sys.exit(0)
 
 # Use ThreadPoolExecutor to classify files in parallel
 with ThreadPoolExecutor() as executor:
