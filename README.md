@@ -16,7 +16,7 @@ This script classifies and moves files from a user-specified source directory in
 - General Exception: Catches and reports any other exceptions that occur during file processing.
 
 ```shell
-$ python3 do_sort.py
+$ python3 srex.py
 Please enter the source directory to be monitored: /path/to/source_directory
 Classifying files: 100%|████████████████████████████████████████| 100/100 [00:05<00:00, 19.98file/s]
 Moved file1.jpg to Images
