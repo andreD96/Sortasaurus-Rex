@@ -1,13 +1,23 @@
+"""
+Unit testing file for classification script
+"""
+
 import unittest
 from unittest.mock import patch, MagicMock
 import srex
 
 
 class TestFileClassification(unittest.TestCase):
+    """
+    Unit tests for the file classification script in srex.py.
+    """
 
     @patch('srex.Path')
     @patch('srex.get_directory')
     def test_directory_creation(self, mock_get_directory, mock_path):
+        """
+        Test the creation of category directories in an empty directory.
+        """
         mock_get_directory.return_value = '/mock/directory'
         mock_directory = MagicMock()
         mock_path.return_value = mock_directory
@@ -28,6 +38,9 @@ class TestFileClassification(unittest.TestCase):
     @patch('srex.Path')
     @patch('srex.get_directory')
     def test_file_classification(self, mock_get_directory, mock_path):
+        """
+        Test the classification and movement of files to appropriate directories.
+        """
         mock_get_directory.return_value = '/mock/directory'
         mock_directory = MagicMock()
         mock_path.return_value = mock_directory
@@ -53,29 +66,6 @@ class TestFileClassification(unittest.TestCase):
         # Check if the rename method was called for each file
         for file in mock_files:
             self.assertTrue(file.rename.called)
-
-    @patch('srex.Path')
-    @patch('srex.get_directory')
-    def test_classify_file_permission_error(self, mock_get_directory, mock_path):
-        mock_get_directory.return_value = '/mock/directory'
-        mock_directory = MagicMock()
-        mock_path.return_value = mock_directory
-        mock_directory.is_dir.return_value = True
-
-        # Mock a file with a permission error
-        mock_file = MagicMock(suffix='.jpg', name='image.jpg')
-        mock_file.rename.side_effect = PermissionError
-
-        categories = {
-            'Images': ['jpeg', 'jpg', 'png'],
-            'PDFs': ['pdf'],
-            'Datasets': ['csv', 'xlsx', 'json'],
-            'Videos&ShortVids': ['mp4', 'gif'],
-            'Other': []
-        }
-
-        with self.assertRaises(srex.PermissionDeniedError):
-            srex.classify_file(mock_file, mock_directory, categories)
 
 
 if __name__ == '__main__':

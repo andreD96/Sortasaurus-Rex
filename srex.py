@@ -7,36 +7,63 @@ predefined categories based on their extensions.
 """
 
 import sys
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
 
 
 class DirectoryError(Exception):
-    pass
+    """Custom exception raised for directory-related errors."""
 
 
 class PermissionDeniedError(Exception):
-    pass
+    """
+    Custom exception raised when permission is denied 
+    for a directory operation.
+    """
 
 
 class EmptyDirectoryError(Exception):
-    pass
+    """
+    Custom exception raised when the source directory
+    is empty.
+    """
 
 
 def get_directory():
+    """
+    Prompts the user to enter the source directory path.
+
+    Returns:
+        str: The path to the source directory entered by the user.
+    """
     return input("Please enter the source directory to be monitored: ")
 
 
 def create_category_directories(directory_path, categories):
+    """
+    Creates subdirectories for each category within the specified directory.
+
+    Args:
+        directory_path (Path): The path to the directory where subdirectories 
+                                 will be created.
+        categories (list): A list of category names to be used 
+                            as subdirectory names.
+
+    Raises:
+        PermissionDeniedError: If permission is denied to create a directory.
+        DirectoryError: For other directory-related errors during creation.
+    """
     for category in categories:
         category_path = directory_path / category
         try:
             category_path.mkdir(parents=True, exist_ok=True)
-        except PermissionError:
-            raise PermissionDeniedError(f"Error: Permission denied to create directory '{category_path}'.")
+        except PermissionError as exc:  # More specific exception handling
+            raise PermissionDeniedError(
+                f"Error: Permission denied to create directory '{category_path}'."
+            ) from exc  # Chain the exceptions
         except Exception as e:
-            raise DirectoryError(f"Error: {e}")
+            raise DirectoryError(f"Error: {e}") from e
 
 
 def classify_file(file_path, directory_path, categories):
@@ -73,15 +100,16 @@ def classify_file(file_path, directory_path, categories):
         file_path.rename(dest_path)
         return file_path.name, dest_category
 
-    except FileNotFoundError:
-        raise FileNotFoundError(f"Error: {file_path} not found.")
-    except PermissionError:
-        raise PermissionDeniedError(f"Error: Permission denied for {file_path}.")
-    except Exception as e:  # pylint: disable=broad-except
-        raise DirectoryError(f"Error: {str(e)}")
+    except FileNotFoundError as exc:  # More specific exception type
+        raise FileNotFoundError(f"Error: {file_path} not found.") from exc
+    except PermissionError as exc:  # More specific exception type
+        raise PermissionDeniedError(f"Error: Permission denied for {file_path}.") from exc
+    except Exception as e:
+        raise DirectoryError(f"Error: {str(e)}") from e
 
 
 def main():
+    """Main function to run the file classification script."""
     # Prompt the user for the source directory
     directory = get_directory()
 
@@ -99,7 +127,9 @@ def main():
 
     # Check if the directory exists
     if not directory_path.is_dir():
-        raise DirectoryError(f"Error: The directory '{directory}' does not exist or is not a directory.")
+        raise DirectoryError(
+            f"Error: The directory '{directory}' does not exist or is not a directory."
+        )
 
     # Create directories for each category
     create_category_directories(directory_path, categories)
@@ -107,10 +137,12 @@ def main():
     # Get the list of files in the directory
     try:
         files = [f for f in directory_path.iterdir() if f.is_file()]
-    except PermissionError:
-        raise PermissionDeniedError(f"Error: Permission denied to access directory '{directory_path}'.")
+    except PermissionError as exc:  # More specific exception type
+        raise PermissionDeniedError(
+            f"Error: Permission denied to access directory '{directory_path}'."
+        ) from exc
     except Exception as e:
-        raise DirectoryError(f"Error: {e}")
+        raise DirectoryError(f"Error: {e}") from e
 
     # Check if there are no files to classify
     if not files:
@@ -121,7 +153,9 @@ def main():
         # Use tqdm to create a progress bar
         with tqdm(total=len(files), desc="Classifying files", unit="file") as pbar:
             # Submit tasks to the executor
-            futures = [executor.submit(classify_file, file_path, directory_path, categories) for file_path in files]
+            futures = [executor.submit(
+                classify_file, file_path, directory_path, categories
+            ) for file_path in files]
 
             # Process results as they complete
             for future in futures:
