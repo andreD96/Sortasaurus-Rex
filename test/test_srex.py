@@ -1,7 +1,6 @@
 import unittest
 from unittest.mock import patch, MagicMock
-from pathlib import Path
-import srex  # assuming the refactored script is saved as srex.py
+import srex
 
 
 class TestFileClassification(unittest.TestCase):
