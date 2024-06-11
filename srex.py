@@ -11,41 +11,45 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from tqdm import tqdm
 
-# Prompt the user for the source directory
-directory = input("Please enter the source directory to be monitored: ")
 
-# Dictionary of file categories and their extensions
-categories = {
-    'Images': ['jpeg', 'jpg', 'png'],
-    'PDFs': ['pdf'],
-    'Datasets': ['csv', 'xlsx', 'json'],
-    'Videos&ShortVids': ['mp4', 'gif'],
-    'Other': []  # Directory for files that don't match any category
-}
-
-# Convert the directory to a Path object
-directory_path = Path(directory)
-
-# Check if the directory exists
-if not directory_path.is_dir():
-    print(f"The directory {directory} does not exist.")
-    sys.exit(1)
-
-# Create directories for each category
-for category, extensions in categories.items():
-    category_path = directory_path / category
-    category_path.mkdir(parents=True, exist_ok=True)
+class DirectoryError(Exception):
+    pass
 
 
-def classify_file(file_path):
+class PermissionDeniedError(Exception):
+    pass
+
+
+class EmptyDirectoryError(Exception):
+    pass
+
+
+def get_directory():
+    return input("Please enter the source directory to be monitored: ")
+
+
+def create_category_directories(directory_path, categories):
+    for category in categories:
+        category_path = directory_path / category
+        try:
+            category_path.mkdir(parents=True, exist_ok=True)
+        except PermissionError:
+            raise PermissionDeniedError(f"Error: Permission denied to create directory '{category_path}'.")
+        except Exception as e:
+            raise DirectoryError(f"Error: {e}")
+
+
+def classify_file(file_path, directory_path, categories):
     """
     Classify and move a file to the appropriate directory based on its extension.
 
     Parameters:
     file_path (Path): The path of the file to classify.
+    directory_path (Path): The path of the source directory.
+    categories (dict): Dictionary of categories and their extensions.
 
     Returns:
-    tuple: The filename and the category it was moved to.
+    tuple: The filename and the category it was moved to, or raises an exception on error.
     """
     try:
         # Find the file extension
@@ -70,39 +74,80 @@ def classify_file(file_path):
         return file_path.name, dest_category
 
     except FileNotFoundError:
-        return file_path.name, 'FileNotFoundError'
+        raise FileNotFoundError(f"Error: {file_path} not found.")
     except PermissionError:
-        return file_path.name, 'PermissionError'
+        raise PermissionDeniedError(f"Error: Permission denied for {file_path}.")
     except Exception as e:  # pylint: disable=broad-except
-        return file_path.name, f'Error: {str(e)}'
+        raise DirectoryError(f"Error: {str(e)}")
 
 
-# Get the list of files in the directory
-files = [f for f in directory_path.iterdir() if f.is_file()]
+def main():
+    # Prompt the user for the source directory
+    directory = get_directory()
 
-# Check if there are no files to classify
-if not files:
-    print("The directory is empty. No files to classify.")
-    sys.exit(0)
+    # Dictionary of file categories and their extensions
+    categories = {
+        'Images': ['jpeg', 'jpg', 'png'],
+        'PDFs': ['pdf'],
+        'Datasets': ['csv', 'xlsx', 'json'],
+        'Videos&ShortVids': ['mp4', 'gif'],
+        'Other': []  # Directory for files that don't match any category
+    }
 
-# Use ThreadPoolExecutor to classify files in parallel
-with ThreadPoolExecutor() as executor:
-    # Use tqdm to create a progress bar
-    with tqdm(total=len(files), desc="Classifying files", unit="file") as pbar:
-        # Submit tasks to the executor
-        futures = [executor.submit(classify_file, file_path) for file_path in files]
+    # Convert the directory to a Path object
+    directory_path = Path(directory)
 
-        # Process results as they complete
-        for future in futures:
-            filename, category = future.result()
-            if category == 'FileNotFoundError':
-                print(f'Error: {filename} not found')
-            elif category == 'PermissionError':
-                print(f'Error: Permission denied for {filename}')
-            elif category.startswith('Error:'):
-                print(f'{category} for file {filename}')
-            else:
-                print(f'Moved {filename} to {category}')
-            pbar.update(1)
+    # Check if the directory exists
+    if not directory_path.is_dir():
+        raise DirectoryError(f"Error: The directory '{directory}' does not exist or is not a directory.")
 
-print("File classification completed.")
+    # Create directories for each category
+    create_category_directories(directory_path, categories)
+
+    # Get the list of files in the directory
+    try:
+        files = [f for f in directory_path.iterdir() if f.is_file()]
+    except PermissionError:
+        raise PermissionDeniedError(f"Error: Permission denied to access directory '{directory_path}'.")
+    except Exception as e:
+        raise DirectoryError(f"Error: {e}")
+
+    # Check if there are no files to classify
+    if not files:
+        raise EmptyDirectoryError("The directory is empty. No files to classify.")
+
+    # Use ThreadPoolExecutor to classify files in parallel
+    with ThreadPoolExecutor() as executor:
+        # Use tqdm to create a progress bar
+        with tqdm(total=len(files), desc="Classifying files", unit="file") as pbar:
+            # Submit tasks to the executor
+            futures = [executor.submit(classify_file, file_path, directory_path, categories) for file_path in files]
+
+            # Process results as they complete
+            for future in futures:
+                try:
+                    filename, category = future.result()
+                    print(f"Moved {filename} to {category}.")
+                except FileNotFoundError as e:
+                    print(e)
+                except PermissionDeniedError as e:
+                    print(e)
+                except DirectoryError as e:
+                    print(e)
+                pbar.update(1)
+
+    print("File classification completed.")
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except DirectoryError as e:
+        print(e)
+        sys.exit(1)
+    except PermissionDeniedError as e:
+        print(e)
+        sys.exit(1)
+    except EmptyDirectoryError as e:
+        print(e)
+        sys.exit(0)
