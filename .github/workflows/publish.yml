@@ -22,10 +22,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install setuptools wheel twine
 
+      - name: Extract version from tag
+        id: extract_version
+        run: echo "VERSION_CODE=$(echo ${GITHUB_REF#refs/tags/})" >> $GITHUB_ENV
+
       - name: Build and publish
         env:
           TWINE_USERNAME: ${{ secrets.TWINE_USER }}
           TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
+          PACKAGE_VERSION: ${{ env.VERSION_CODE }}
         run: |
-          python setup.py sdist bdist_wheel
-          twine upload dist/*
+            sed -i "s/version='.*'/version='${VERSION_CODE}'/" setup.py  # Update version in setup.py
+            python setup.py sdist bdist_wheel
+            twine upload dist/*
