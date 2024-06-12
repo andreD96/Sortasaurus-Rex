@@ -1,12 +1,15 @@
+"""
+Setup file for publishing to pypi
+"""
+
+import os
 from setuptools import setup, find_packages
 from dotenv import load_dotenv
-import os
 
 load_dotenv('.env')
 
-with(open("README.md", "r")) as f:
+with (open("README.md", "r", encoding="")) as f:
     description = f.read()
-
 
 setup(
     name='sortasaurus_rex',
