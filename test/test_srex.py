@@ -5,8 +5,9 @@ import os
 import sys
 import unittest
 from unittest.mock import patch, MagicMock
-import srex
+from sortasaurus_rex import srex
 
+# Ensure the parent directory is in the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 
@@ -15,8 +16,8 @@ class TestFileClassification(unittest.TestCase):
     Unit tests for the file classification script in srex.py.
     """
 
-    @patch('srex.Path')
-    @patch('srex.get_directory')
+    @patch('sortasaurus_rex.srex.Path')
+    @patch('sortasaurus_rex.srex.get_directory')
     def test_directory_creation(self, mock_get_directory, mock_path):
         """
         Test the creation of category directories in an empty directory.
@@ -38,8 +39,8 @@ class TestFileClassification(unittest.TestCase):
         # Check if the mkdir method was called for each category
         self.assertTrue(mock_category_path.mkdir.called)
 
-    @patch('srex.Path')
-    @patch('srex.get_directory')
+    @patch('sortasaurus_rex.srex.Path')
+    @patch('sortasaurus_rex.srex.get_directory')
     def test_file_classification(self, mock_get_directory, mock_path):
         """
         Test the classification and movement of files to appropriate directories.
