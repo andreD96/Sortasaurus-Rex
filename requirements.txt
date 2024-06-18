@@ -1,2 +1,6 @@
 tqdm~=4.66.4
 python-dotenv
+setuptools
+wheel
+twine
+build
