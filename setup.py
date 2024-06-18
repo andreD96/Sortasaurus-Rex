@@ -16,7 +16,15 @@ setup(
     version=os.environ.get('VERSION_CODE'),
     packages=find_packages(),
     install_requires=[
-        'tqdm',
+        'tqdm~=4.66.4',
+        'python-dotenv',
+        'setuptools',
+        'wheel',
+        'twine',
+        'build'
+    ],
+    setup_requires=[
+        'python-dotenv',
     ],
     entry_points={
         'console_scripts': [
