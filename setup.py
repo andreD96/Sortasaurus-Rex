@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 load_dotenv('.env')
 
-with (open("README.md", "r", encoding="")) as f:
+with (open("README.md", "r")) as f:
     description = f.read()
 
 setup(

@@ -2,7 +2,7 @@ name: Publish to PyPI
 
 on:
   release:
-    types: [manual, published]
+    types: [published]
 
 jobs:
   publish:
@@ -20,8 +20,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install setuptools wheel twine
-          pip install -r requirements.txt
+          pip install setuptools wheel twine python-dotenv
+          pip install --use-pep517 -r requirements.txt
 
       - name: Extract version from tag
         id: extract_version
@@ -33,6 +33,7 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
           PACKAGE_VERSION: ${{ env.VERSION_CODE }}
         run: |
-            sed -i "s/version='.*'/version='${VERSION_CODE}'/" setup.py  # Update version in setup.py
-            python setup.py sdist bdist_wheel
-            twine upload dist/*
+          echo "VERSION_CODE=${{ env.VERSION_CODE }}" > .env  # Create .env file for dotenv
+          sed -i "s/version=os.environ.get('VERSION_CODE')/version='${{ env.VERSION_CODE }}'/" setup.py  # Update setup.py for the current build
+          python -m build --sdist --wheel  # Use PEP 517 compatible build process
+          twine upload dist/*
