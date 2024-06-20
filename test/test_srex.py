@@ -63,9 +63,10 @@ class TestFileClassification(unittest.TestCase):
         # Mock the destination paths
         mock_dest_path = MagicMock()
         mock_directory.__truediv__.return_value = mock_dest_path
-
+        print(mock_directory.iterdir.return_value)
+        print(mock_get_directory.return_value)
         # Run the script
-        srex.main()
+        srex.main(mock_get_directory.return_value)
 
         # Check if the rename method was called for each file
         for file in mock_files:
