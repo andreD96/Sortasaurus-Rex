@@ -1,75 +1,71 @@
-"""
-Unit testing file for classification script
-"""
-import os
-import sys
+import shutil
 import unittest
-from unittest.mock import patch, MagicMock
-from sortasaurus_rex import srex
+from pathlib import Path
 
-# Ensure the parent directory is in the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from tqdm import tqdm
+
+from sortasaurus_rex.utilities.classifier import classify_file, classify_files_in_directory
 
 
 class TestFileClassification(unittest.TestCase):
-    """
-    Unit tests for the file classification script in srex.py.
-    """
 
-    @patch('sortasaurus_rex.srex.Path')
-    @patch('sortasaurus_rex.srex.get_directory')
-    def test_directory_creation(self, mock_get_directory, mock_path):
-        """
-        Test the creation of category directories in an empty directory.
-        """
-        mock_get_directory.return_value = '/mock/directory'
-        mock_directory = MagicMock()
-        mock_path.return_value = mock_directory
-        mock_directory.is_dir.return_value = True
-        mock_directory.iterdir.return_value = []
+    def setUp(self):
+        # Create a temporary directory for testing
+        self.test_dir = Path('test_directory')
+        self.test_dir.mkdir(exist_ok=True)
 
-        # Mock the mkdir method
-        mock_category_path = MagicMock()
-        mock_directory.__truediv__.return_value = mock_category_path
+        # Create test files
+        (self.test_dir / 'test1.jpg').touch()
+        (self.test_dir / 'test2.png').touch()
+        (self.test_dir / 'document1.pdf').touch()
+        (self.test_dir / 'audio1.mp3').touch()
+        (self.test_dir / 'video1.mp4').touch()
+        (self.test_dir / 'unknownfile.xyz').touch()
 
-        # Run the script
-        with self.assertRaises(srex.EmptyDirectoryError):
-            srex.main()
+        # Create subdirectories for categorized files
+        (self.test_dir / 'Images').mkdir(exist_ok=True)
+        (self.test_dir / 'Documents').mkdir(exist_ok=True)
+        (self.test_dir / 'Audio').mkdir(exist_ok=True)
+        (self.test_dir / 'Videos').mkdir(exist_ok=True)
+        (self.test_dir / 'Others').mkdir(exist_ok=True)
 
-        # Check if the mkdir method was called for each category
-        self.assertTrue(mock_category_path.mkdir.called)
+    def tearDown(self):
+        # Remove the temporary directory after tests
+        shutil.rmtree(self.test_dir)
 
-    @patch('sortasaurus_rex.srex.Path')
-    @patch('sortasaurus_rex.srex.get_directory')
-    def test_file_classification(self, mock_get_directory, mock_path):
-        """
-        Test the classification and movement of files to appropriate directories.
-        """
-        mock_get_directory.return_value = '/mock/directory'
-        mock_directory = MagicMock()
-        mock_path.return_value = mock_directory
-        mock_directory.is_dir.return_value = True
+    def test_classify_file(self):
+        categories = {
+            '.jpg': 'Images',
+            '.png': 'Images',
+            '.pdf': 'Documents',
+            '.mp3': 'Audio',
+            '.mp4': 'Videos',
+        }
+        for file in self.test_dir.iterdir():
+            if file.is_file():
+                file_name, category = classify_file(file, self.test_dir, categories)
+                expected_dir = self.test_dir / categories.get(file.suffix.lower(), 'Others')
+                expected_path = expected_dir / file.name
+                self.assertTrue(expected_path.exists())
+                self.assertEqual(category, categories.get(file.suffix.lower(), 'Others'))
 
-        # Mock files with different extensions
-        mock_files = [
-            MagicMock(suffix='.jpg', name='image.jpg'),
-            MagicMock(suffix='.pdf', name='document.pdf'),
-            MagicMock(suffix='.csv', name='data.csv'),
-            MagicMock(suffix='.mp4', name='video.mp4'),
-            MagicMock(suffix='.unknown', name='unknown.xyz')
-        ]
-        mock_directory.iterdir.return_value = mock_files
+    def test_classify_files_in_directory(self):
+        categories = {
+            '.jpg': 'Images',
+            '.png': 'Images',
+            '.pdf': 'Documents',
+            '.mp3': 'Audio',
+            '.mp4': 'Videos',
+        }
+        with tqdm(total=6, desc="Classifying files", unit="file") as pbar:
+            classify_files_in_directory(self.test_dir, categories, pbar)
 
-        # Mock the destination paths
-        mock_dest_path = MagicMock()
-        mock_directory.__truediv__.return_value = mock_dest_path
+        for ext, category in categories.items():
+            category_dir = self.test_dir / category
+            self.assertTrue(any(category_dir.iterdir()))
 
-        # Run the script
-        srex.main()
-
-        # Check if the rename method was called for each file
-        for file in mock_files:
-            self.assertTrue(file.rename.called)
+        others_dir = self.test_dir / 'Others'
+        self.assertTrue(any(others_dir.iterdir()))
 
 
 if __name__ == '__main__':
