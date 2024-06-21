@@ -1,4 +1,8 @@
-# Custom exceptions
+"""
+Custom exception classes
+"""
+
+
 class DirectoryError(Exception):
     """Custom exception raised for directory-related errors."""
 

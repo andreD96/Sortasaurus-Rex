@@ -9,10 +9,15 @@ from tqdm import tqdm
 from .custom_exceptions import PermissionDeniedError, DirectoryError
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 
-def classify_file(file_path: Path, root_directory_path: Path, categories: Dict[str, str]) -> Tuple[str, str]:
+def classify_file(
+        file_path: Path,
+        root_directory_path: Path,
+        categories: Dict[str, str]) -> Tuple[str, str]:
     """
     Classifies a file based on its extension and moves it
     to the appropriate category directory.
@@ -31,7 +36,7 @@ def classify_file(file_path: Path, root_directory_path: Path, categories: Dict[s
         Tuple[str, str]: The file name and the category it was moved to.
     """
     if not file_path.exists():
-        raise FileNotFoundError(f"File not found: {file_path}")
+        raise FileNotFoundError("File not found: %s" % file_path)
 
     file_ext = file_path.suffix.lower()
     category = categories.get(file_ext, "Others")
@@ -39,30 +44,42 @@ def classify_file(file_path: Path, root_directory_path: Path, categories: Dict[s
 
     # Check if the file is already in the correct category directory
     if file_path.parent == dest_dir:
-        logging.info(f"File {file_path.name} is already in the correct category directory. Skipping move.")
+        logging.info(
+            "File %s is already in the correct category directory. Skipping move.",
+            file_path.name
+        )
         return file_path.name, category
 
     dest_path = dest_dir / file_path.name
 
     if dest_path.exists():
-        logging.info(f"File {file_path.name} already exists in {category}. Skipping move.")
+        logging.info("File %s already exists in %s. Skipping move.", file_path.name, category)
         return file_path.name, category
 
     try:
         file_path.rename(dest_path)
-        logging.info(f"Moved {file_path.name} to {category}.")
+        logging.info("Moved %s to %s.", file_path.name, category)
         return file_path.name, category
     except PermissionError as exc:
-        logging.error(f"Permission denied to move file '{file_path}' to '{dest_path}'.", exc_info=True)
+        logging.error(
+            "Permission denied to move file '%s' to '%s'.", file_path, dest_path,
+            exc_info=True
+        )
         raise PermissionDeniedError(
-            f"Error: Permission denied to move file '{file_path}' to '{dest_path}'."
+            "Error: Permission denied to move file '%s' to '%s'." % (file_path, dest_path)
         ) from exc
     except Exception as e:
-        logging.error(f"Error moving file '{file_path}' to '{dest_path}': {e}", exc_info=True)
-        raise DirectoryError(f"Error: {e}") from e
+        logging.error(
+            "Error moving file '%s' to '%s': %s", file_path, dest_path, e,
+            exc_info=True
+        )
+        raise DirectoryError("Error: %s" % e) from e
 
 
-def classify_files_in_directory(directory_path: Path, categories: Dict[str, str], pbar: tqdm) -> None:
+def classify_files_in_directory(
+        directory_path: Path,
+        categories: Dict[str, str],
+        pbar: tqdm) -> None:
     """
     Classifies files in the given directory, including nested
     directories, and updates the progress bar.
@@ -77,7 +94,7 @@ def classify_files_in_directory(directory_path: Path, categories: Dict[str, str]
             try:
                 classify_file(file_path, directory_path, categories)
             except (FileNotFoundError, PermissionDeniedError, DirectoryError) as e:
-                logging.error(e, exc_info=True)
+                logging.error("%s", e, exc_info=True)
             pbar.update(1)
         elif file_path.is_dir():
             classify_files_in_directory(file_path, categories, pbar)

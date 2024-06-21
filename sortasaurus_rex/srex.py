@@ -34,11 +34,13 @@ def main(directory=None):
                                    prompts the user to enter the source directory path.
     """
     categories = {
-        '.jpg': 'Images', '.jpeg': 'Images', '.png': 'Images', '.gif': 'Images', '.bmp': 'Images',
-        '.heic': 'Images', '.txt': 'Text', '.pdf': 'Documents', '.doc': 'Documents', '.docx': 'Documents',
-        '.xls': 'Spreadsheets', '.xlsx': 'Spreadsheets', '.csv': 'Spreadsheets', '.mp3': 'Audio',
-        '.wav': 'Audio', '.ogg': 'Audio', '.mp4': 'Videos', '.mkv': 'Videos', '.mov': 'Videos',
-        'Others': 'Others'
+        '.jpg': 'Images', '.jpeg': 'Images', '.png': 'Images',
+        '.gif': 'Images', '.bmp': 'Images', '.heic': 'Images',
+        '.txt': 'Text', '.pdf': 'Documents', '.doc': 'Documents',
+        '.docx': 'Documents', '.xls': 'Spreadsheets', '.xlsx': 'Spreadsheets',
+        '.csv': 'Spreadsheets', '.mp3': 'Audio', '.wav': 'Audio',
+        '.ogg': 'Audio', '.mp4': 'Videos', '.mkv': 'Videos',
+        '.mov': 'Videos', 'Others': 'Others'
     }
 
     if directory is None:
@@ -47,7 +49,9 @@ def main(directory=None):
     directory_path = Path(directory)
 
     if not directory_path.is_dir():
-        raise DirectoryError(f"Error: The directory '{directory}' does not exist or is not a directory.")
+        raise DirectoryError(
+            f"Error: The directory '{directory}' does not exist or is not a directory."
+        )
 
     create_category_directories(directory_path, set(categories.values()))
 
