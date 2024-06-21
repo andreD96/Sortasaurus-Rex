@@ -1,7 +1,14 @@
-from custom_exceptions import PermissionDeniedError, DirectoryError
+import logging
+
+from pathlib import Path
+from typing import List
+from .custom_exceptions import PermissionDeniedError, DirectoryError
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
-def get_directory():
+def get_directory() -> str:
     """
     Prompts the user to enter the source directory path.
 
@@ -11,15 +18,15 @@ def get_directory():
     return input("Please enter the source directory to be monitored: ")
 
 
-def create_category_directories(directory_path, categories):
+def create_category_directories(directory_path: Path, categories: List[str]) -> None:
     """
     Creates subdirectories for each category within the specified directory.
 
     Args:
         directory_path (Path): The path to the directory where subdirectories
                                will be created.
-        categories (list): A list of category names to be used
-                           as subdirectory names.
+        categories (List[str]): A list of category names to be used
+                                as subdirectory names.
 
     Raises:
         PermissionDeniedError: If permission is denied to create a directory.
@@ -29,9 +36,12 @@ def create_category_directories(directory_path, categories):
         category_path = directory_path / category
         try:
             category_path.mkdir(parents=True, exist_ok=True)
+            logging.info(f"Created directory '{category_path}'.")
         except PermissionError as exc:
+            logging.error(f"Permission denied to create directory '{category_path}'.", exc_info=True)
             raise PermissionDeniedError(
                 f"Error: Permission denied to create directory '{category_path}'."
             ) from exc
         except Exception as e:
+            logging.error(f"Error creating directory '{category_path}': {e}", exc_info=True)
             raise DirectoryError(f"Error: {e}") from e
