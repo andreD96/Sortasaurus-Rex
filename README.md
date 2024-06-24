@@ -5,7 +5,6 @@
 This script classifies files in a specified directory into predefined categories based on their extensions. It uses multithreading to speed up the classification process and provides real-time progress updates using a progress bar. The script ensures that the source directory exists and is not empty before processing, and handles errors gracefully.
 
 ## Features
-## Features
 
 - **Intelligent File Classification:** Automatically categorizes files into Images, PDFs, Datasets, Videos & ShortVids, and Other.
 - **High-Performance:** Utilizes multithreading via `ThreadPoolExecutor` for parallel processing.
